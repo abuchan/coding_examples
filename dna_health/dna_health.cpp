@@ -69,7 +69,7 @@ long sequence_health(vector<string> genes, vector<int> healths, int first, int l
         for (int gi = first; gi <= last; gi++) {
             string gene = genes[gi];
             int gl = gene.length();
-            cout << "looking for " << gene << " in " << seq << " at " << si << "\n";
+            //cout << "looking for " << gene << " in " << seq << " at " << si << "\n";
             if (((seq.length() - si) >= gl) && (seq.compare(si, gl, gene) == 0)) {
                 health += healths[gi];
             }
@@ -150,6 +150,9 @@ int main()
 
     long min_health = -1;
     long max_health = -1;
+    
+    double total_tree_time = 0.0;
+    double total_naive_time = 0.0;
 
     for (int s_itr = 0; s_itr < s; s_itr++) {
         string firstLastd_temp;
@@ -163,11 +166,27 @@ int main()
 
         string d = firstLastd[2];
         
+        clock_t start_clk = clock();
+
         //cout << "Tree " << first << "," << last << "\n";
         node_t* tree = build_tree(genes, health, first, last);
         //print_tree(tree);
 
         long seq_health = sequence_health(tree, d);
+        //long seq_health = 0;//sequence_health(tree, d);
+        
+        clock_t tree_clk = clock();
+
+        long test_health = sequence_health(genes, health, first, last, d);
+        
+        clock_t naive_clk = clock();
+
+        total_tree_time += ((double)(tree_clk - start_clk))/CLOCKS_PER_SEC;
+        total_naive_time += ((double)(naive_clk - tree_clk))/CLOCKS_PER_SEC;
+        
+        if (s_itr % 10 == 0) {
+          cout << total_tree_time / s_itr << " " << total_naive_time / s_itr << "\n";
+        }
 
         if ((min_health == -1) || (seq_health < min_health)) {
             min_health = seq_health;
@@ -177,8 +196,8 @@ int main()
             max_health = seq_health;
         }
         
-        cout << s_itr << " of " << s << ":" << seq_health << "\n";
-        cout << min_health << " " << max_health << "\n";
+        //cout << s_itr << " of " << s << ":" << seq_health << "\n";
+        //cout << min_health << " " << max_health << "\n";
     }
 
     cout << min_health << " " << max_health << "\n";

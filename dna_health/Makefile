@@ -1,5 +1,5 @@
 dna_health: dna_health.cpp
-	g++ -std=c++11 dna_health.cpp -o dna_health
+	g++ -std=c++11 dna_health.cpp -o dna_health -g -pg
 
 test_1: input01.txt dna_health
 	./dna_health < input01.txt
