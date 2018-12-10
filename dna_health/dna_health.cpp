@@ -5,17 +5,66 @@ using namespace std;
 vector<string> split_string(string);
 
 typedef struct node_t {
-  int value[26];
+  int health[26];
   struct node_t* child[26];
 } node_t ;
 
-node_t build_tree(vector<string> genes, vector<int> healths, int first, int last) {
+vector<int> str_to_int_vec(string str) {
+  vector<int> v = vector<int>(str.length());
+  for (int i = 0; i < str.length(); i++) {
+    v[i] = str[i] - 'a';
+  }
+  return v;
+}
+
+void add_gene_to_tree(node_t* tree, string gene, int health) {
+  node_t* node = tree;
+  vector<int> gene_vec = str_to_int_vec(gene);
+  
+  //cout << "Adding " << gene << "-" << health << "\n";
+
+  for (int i = 0; i < gene.length(); i++) {
+    int chr_idx = gene_vec[i];
+
+    if (i == gene.length() - 1) {
+      node->health[chr_idx] += health;
+    } else if (node->child[chr_idx] == NULL) {
+      node->child[chr_idx] = (node_t*)calloc(1, sizeof(node_t));
+    }
+    
+    node = node->child[chr_idx];
+  }
+}
+
+node_t* build_tree(vector<string> genes, vector<int> healths, int first, int last) {
   node_t* tree = (node_t*)calloc(1, sizeof(node_t));
+  for (int i = first; i <= last; i++) {
+    add_gene_to_tree(tree, genes[i], healths[i]);
+  }
   return tree;
 }
 
-int sequence_health(vector<string> genes, vector<int> healths, int first, int last, string seq) {
-    int health = 0;
+void print_node(node_t* node) {
+  printf("Node 0x%08X\n", (uint64_t)node);
+  for (int i = 0; i < 26; i++) {
+    if ((node->health[i] != 0) || (node->child[i] != NULL)) {
+      printf("  %c (%d) : 0x%08X\n", 'a' + i, node->health[i], (uint64_t)node->child[i]);
+    }
+  }
+}
+
+void print_tree(node_t* tree) {
+  print_node(tree);
+  for (int i = 0; i < 26; i++) {
+    if (tree->child[i] != NULL) {
+      print_tree(tree->child[i]);
+    }
+  }
+}
+
+long sequence_health(vector<string> genes, vector<int> healths, int first, int last, string seq) {
+    long health = 0;
+    
     for (int si = 0; si < seq.length(); si++) {
         for (int gi = first; gi <= last; gi++) {
             string gene = genes[gi];
@@ -26,7 +75,41 @@ int sequence_health(vector<string> genes, vector<int> healths, int first, int la
             }
         }
     }
+    
     return health;
+}
+
+long sequence_health(node_t* tree, vector<int> seq_vec, int start);
+
+long sequence_health(node_t* tree, string seq) {
+  long health = 0;
+  vector<int> seq_vec = str_to_int_vec(seq);
+  
+  //cout << "Checking " << seq << "\n";
+  //print_tree(tree);
+  
+  for (int i = 0; i < seq.length(); i++) {
+    long sub_health = sequence_health(tree, seq_vec, i);
+    //cout << " " << i << ":" << sub_health << "\n";
+    health += sub_health;
+  }
+  
+  //cout << "Total " << health << "\n\n";
+  return health;
+}
+
+long sequence_health(node_t* tree, vector<int> seq_vec, int start) {
+  int chr_idx = seq_vec[start];
+  long health = tree->health[chr_idx];
+  
+  //cout << "Node health:" << seq_vec[start] << ":" << health << "\n";
+  if (start < seq_vec.size() - 1) {
+    if (tree->child[chr_idx] != NULL) {
+      health += sequence_health(tree->child[chr_idx], seq_vec, start + 1);
+    }
+  }
+
+  return health;
 }
 
 int main()
@@ -65,8 +148,8 @@ int main()
     cin >> s;
     cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
-    int min_health = -1;
-    int max_health = -1;
+    long min_health = -1;
+    long max_health = -1;
 
     for (int s_itr = 0; s_itr < s; s_itr++) {
         string firstLastd_temp;
@@ -79,8 +162,12 @@ int main()
         int last = stoi(firstLastd[1]);
 
         string d = firstLastd[2];
+        
+        //cout << "Tree " << first << "," << last << "\n";
+        node_t* tree = build_tree(genes, health, first, last);
+        //print_tree(tree);
 
-        int seq_health = sequence_health(genes, health, first, last, d);
+        long seq_health = sequence_health(tree, d);
 
         if ((min_health == -1) || (seq_health < min_health)) {
             min_health = seq_health;
@@ -89,9 +176,12 @@ int main()
         if (seq_health > max_health) {
             max_health = seq_health;
         }
+        
+        cout << s_itr << " of " << s << ":" << seq_health << "\n";
+        cout << min_health << " " << max_health << "\n";
     }
 
-    cout << min_health << " " << max_health;
+    cout << min_health << " " << max_health << "\n";
 
     return 0;
 }
